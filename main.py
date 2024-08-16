@@ -32,7 +32,8 @@ async def test(ctx):
 cogs_list = [
     'help',
     'ticket',
-    'giveaway'
+    'giveaway',
+    'announcement'
 ]
 
 for cog in cogs_list:
