@@ -20,6 +20,9 @@ bot = discord.Bot(description="Das ist der Discord Bot vom Die Otter Discord!")
 async def on_ready():
     print(f"{bot.user} ist online!")
     bot.add_view(ticket.OpenTicket())
+    activity = discord.Game(name="Die Otter Discord")
+    await bot.change_presence(activity=activity)
+    
     
 @bot.event
 async def on_member_join(member):
