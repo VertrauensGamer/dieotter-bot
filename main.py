@@ -21,15 +21,6 @@ async def on_ready():
     activity = discord.Game(name="Die Otter Discord")
     await bot.change_presence(activity=activity)
     
-    
-@bot.event
-async def on_member_join(member):
-    member.add_roles(id=1273389944743923713)
-    
-@bot.slash_command(name="hallo", description="Just a test command")
-async def test(ctx):
-    await ctx.respond("Hallo!")
-    
 cogs_list = [
     'help',
     'ticket',
