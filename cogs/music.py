@@ -19,7 +19,7 @@ class music(commands.Cog):
         super().__init__()
         
     @discord.slash_command()
-    async def play(ctx: discord.ApplicationContext, url: str):
+    async def play(ctx: discord.ApplicationContext, url: discord.Option(str, "Enter URL to play")):
         voice_channel = ctx.author.voice.channel
         if not voice_channel: 
             await ctx.respond("You need to be in a Voice Channel to play music", ephemeral=True)
