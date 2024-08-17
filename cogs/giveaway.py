@@ -32,8 +32,8 @@ class Giveaway(commands.Cog):
     async def startgiveaway(
         self,
         ctx: discord.ApplicationContext,
-        giveaway_item: discord.Option(str, "The Giveaway Item"),
-        time_in_mins: discord.Option(int, "How long in mins"),
+        giveaway_item: discord.Option(str, "The Giveaway Item"), # type: ignore
+        time_in_mins: discord.Option(int, "How long in mins"), # type: ignore
     ):
         
         client = MongoClient("mongodb://localhost:27017/")

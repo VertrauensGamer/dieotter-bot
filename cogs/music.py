@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-import youtube_dl
+import yt_dlp as youtube_dl
 
 youtube_dl.utils.bug_reports_message = lambda: ""
 
@@ -19,7 +19,7 @@ class music(commands.Cog):
         super().__init__()
         
     @discord.slash_command()
-    async def play(ctx: discord.ApplicationContext, url: discord.Option(str, "Enter URL to play")):
+    async def play(self, ctx: discord.ApplicationContext, url: discord.Option(str, "Enter URL to play")): # type: ignore
         voice_channel = ctx.author.voice.channel
         if not voice_channel: 
             await ctx.respond("You need to be in a Voice Channel to play music", ephemeral=True)
@@ -29,6 +29,11 @@ class music(commands.Cog):
         
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
+            try: 
+                info = ydl.extract_info(url, download=False)
+            except Exception as e:
+                await ctx.respond(f"An error occurred: {str(e)}")
+                return
             ur12 = info['formats'][0]['url']
             voice_client.play(discord.FFmpegPCMAudio(ur12))
             
