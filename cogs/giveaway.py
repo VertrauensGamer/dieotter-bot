@@ -22,7 +22,6 @@ class GiveawayButton(discord.ui.View):
             collection.insert_one({"user_id": user.id, "user_name": user.name})
             await interaction.response.send_message("You've entered the Giveaway!", ephemeral=True)
             
-
 class Giveaway(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -37,9 +36,9 @@ class Giveaway(commands.Cog):
     ):
         
         client = MongoClient("mongodb://localhost:27017/")
-        giveawaydb = client["GiveawayDB"]
+        giveawaydb = client["DiscordBotDB"]
         checkdb = client.list_database_names()
-        collection = giveawaydb["GiveawayCollect"]
+        collection = giveawaydb["GiveawayCollection"]
         checkcol = giveawaydb.list_collection_names()
         
         embed = discord.Embed(
@@ -56,14 +55,12 @@ class Giveaway(commands.Cog):
             await message.edit_original_response(embed=embed)
             await asyncio.sleep(60)
         
-        
         winner_data = collection.aggregate([{'$sample': {'size': 1}}])
         winner_document = next(winner_data, None)
         if winner_document:
             winner = winner_document.get('user_name', 'N/A')
         else:
             winner = "No Entry"
-        
         
         embed.description = "**GIVEAWAY ENDED**"
         embed.color = discord.Color.red()

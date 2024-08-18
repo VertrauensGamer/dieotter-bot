@@ -23,7 +23,10 @@ class OpenTicket(discord.ui.View):
         ticketdb = client["DiscordBotDB"]
         collection = ticketdb["TicketCollection"]
         
-        if collection.find_one({"user.id": user.id}):
+        if collection.find_one({"user_id": user.id}):
+            await interaction.response.send_message("You already have a open Ticket", ephemeral=True)
+            
+        else:
             if category:
                 max_number = 0
                 for channel in guild.channels:
@@ -36,7 +39,7 @@ class OpenTicket(discord.ui.View):
                             continue
                         
                 new_ticket = f"ticket-{max_number + 1}"
-                collection.insert_one({"user.id": user.id, "user.name": user.name, "ticket_name": f"{new_ticket}"})
+                collection.insert_one({"user_id": user.id, "user_name": user.name, "ticket_name": f"{new_ticket}"})
                 await guild.create_text_channel(new_ticket, category=category, overwrites=member_overwrites)
                 await interaction.response.send_message(f"Created your Ticket! Ticketname: {new_ticket}", ephemeral=True)
             else:
@@ -52,12 +55,9 @@ class OpenTicket(discord.ui.View):
                             continue
                         
                 new_ticket = f"ticket-{max_number + 1}"
-                collection.insert_one({"user.id": user.id, "user.name": user.name, "ticket_name": f"{new_ticket}"})
+                collection.insert_one({"user_id": user.id, "user_name": user.name, "ticket_name": f"{new_ticket}"})
                 await guild.create_text_channel(new_ticket, category=category, overwrites=member_overwrites)
                 await interaction.response.send_message(f"Created your Ticket! Ticketname: {new_ticket}", ephemeral=True)
-        else:
-            await interaction.response.send_message("You already have a open Ticket", ephemeral=True)
-            
             
 class CloseTicket(discord.ui.View):
     @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.red)
@@ -77,10 +77,12 @@ class CloseTicket(discord.ui.View):
         if category:
             collection.delete_one({"ticket_name": f"{channel.name}"})
             await channel.edit(category=category, overwrites=overwrites)
+            await interaction.response.send_message("The Ticket was successfully closed!", ephemeral=True)
         else:
             collection.delete_one({"ticket_name": f"{channel.name}"})
             await guild.create_category(name="archived-tickets", overwrites=overwrites)
             await channel.edit(category=category, overwrites=overwrites)
+            await interaction.response.send_message("The Ticket was successfully closed!", ephemeral=True)
         
 class ticket(commands.Cog):
     def __init__(self, bot):
@@ -111,10 +113,9 @@ class ticket(commands.Cog):
                     color=discord.Colour.dark_purple(),
                 )
             
-            await ctx.send(embed=embed, view=CloseTicket())
+            await ctx.respond(embed=embed, view=CloseTicket())
         else:
             await ctx.respond("This is not a ticket", ephemeral=True)
-
 
 def setup(bot):
     bot.add_cog(ticket(bot))
