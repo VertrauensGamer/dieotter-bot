@@ -27,7 +27,6 @@ cogs_list = [
     'giveaway',
     'announcement',
     'oil',
-    'music'
 ]
 
 for cog in cogs_list:
