@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from pymongo import MongoClient
 
-
 class OpenTicket(discord.ui.View):
     
     def __init__(self):
