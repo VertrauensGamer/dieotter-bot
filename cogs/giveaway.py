@@ -103,7 +103,9 @@ class Giveaway(commands.Cog):
         winner_document = next(winner_data, None)
 
         if winner_document:
-            winner = winner_document.get('user_name', 'N/A')
+            winner_id = winner_document.get('user_id')
+            winner_user = await ctx.guild.fetch_member(winner_id)
+            winner = winner_user.mention
         else:
             winner = "No Entry"
 

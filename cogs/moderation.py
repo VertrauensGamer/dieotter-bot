@@ -29,14 +29,26 @@ class moderation(commands.Cog):
                 await ctx.respond(f"User {member} has been muted for {reason}")
         else:
             await member.add_roles(mute_role, reason=reason)
-            await ctx.respond(f"User {member} has been muted for {reason}")
+            await ctx.respond(f"User {member.mention} has been muted for {reason}")
             
     @discord.slash_command()
     @commands.has_permissions(administrator=True)
     async def unmute(self, ctx: discord.ApplicationContext, member: discord.Member):
         mute_role = discord.utils.get(ctx.guild.roles, name="muted")
         await member.remove_roles(mute_role)
-        await ctx.respond(f"User {member} has been unmuted.")
+        await ctx.respond(f"User {member.mention} has been unmuted.")
+        
+    @discord.slash_command()
+    @commands.has_permissions(administrator=True)
+    async def give_role(self, ctx: discord.ApplicationContext, member: discord.Member, role: discord.Role):
+        await member.add_roles(role)
+        await ctx.respond(f"Gave {member.mention} the {role} Role")
+        
+    @discord.slash_command()
+    @commands.has_permissions(administrator=True)
+    async def remove_role(self, ctx: discord.ApplicationContext, member: discord.Member, role: discord.Role):
+        await member.remove_roles(role)
+        await ctx.respond(f"Removed Role {role} from {member.mention}")
         
 def setup(bot):
     bot.add_cog(moderation(bot))
