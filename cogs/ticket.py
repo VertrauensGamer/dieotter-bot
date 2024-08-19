@@ -97,7 +97,6 @@ class ticket(commands.Cog):
             color=discord.Colour.dark_purple(),
         )
         embed.set_footer(text="VertrauensGamer", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
-        embed.set_author(name=f"{ctx.author.display_name}", icon_url=f"{ctx.author.display_avatar.url}")
         
         
         await ctx.send(embed=embed, view=OpenTicket())
