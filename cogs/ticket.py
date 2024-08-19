@@ -88,6 +88,7 @@ class ticket(commands.Cog):
         self.bot = bot
         
     @discord.slash_command()
+    @commands.has_permissions(administrator=True)
     async def ticket_message(self, ctx):
         
         embed = discord.Embed(
@@ -99,6 +100,7 @@ class ticket(commands.Cog):
         await ctx.send(embed=embed, view=OpenTicket())
         
     @discord.slash_command()
+    @commands.has_permissions(administrator=True)
     async def close_ticket(self, ctx: discord.ApplicationContext):
         
         client = MongoClient("mongodb://localhost:27017/")

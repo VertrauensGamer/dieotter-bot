@@ -32,6 +32,7 @@ class Giveaway(commands.Cog):
         super().__init__()
 
     @discord.slash_command()
+    @commands.has_permissions(administrator=True)
     async def giveaway_create(
         self,
         ctx: discord.ApplicationContext,
@@ -67,6 +68,7 @@ class Giveaway(commands.Cog):
             await self.end_giveaway(ctx, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed)
 
     @discord.slash_command()
+    @commands.has_permissions(administrator=True)
     async def endgiveaway(
         self,
         ctx: discord.ApplicationContext,

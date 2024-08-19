@@ -7,6 +7,7 @@ class announcement(commands.Cog):
         super().__init__
     
     @discord.slash_command()
+    @commands.has_permissions(administrator=True)
     async def announcement(self,
                            ctx: discord.ApplicationContext,
                            title: discord.Option(str, "Title of the announcement"),
