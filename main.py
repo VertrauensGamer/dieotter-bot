@@ -13,7 +13,7 @@ logger.addHandler(handler)
 
 load_dotenv()
 
-bot = discord.Bot()
+bot = discord.Bot(intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
@@ -30,6 +30,14 @@ async def on_ready():
     bot.add_view(ticket.OpenTicket())
     activity = discord.Game(name="Die Otter Discord")
     await bot.change_presence(activity=activity)
+    
+@bot.event
+async def on_member_join(member: discord.Member):
+    role = discord.utils.get(member.guild.roles, name="Member")
+    if role:
+        await member.add_roles(role)
+        print(f"Assigned {role} to {member.name}")
+    
     
 cogs_list = [
     'help',
