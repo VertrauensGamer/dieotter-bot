@@ -3,87 +3,80 @@ from discord.ext import commands
 from pymongo import MongoClient
 import datetime
 
+# Database setup
+MONGO_URI = "mongodb://localhost:27017/"
+DB_NAME = "DiscordBotDB"
+COLLECTION_NAME = "TicketCollection"
+
+def get_db_collection():
+    client = MongoClient(MONGO_URI)
+    db = client[DB_NAME]
+    return db[COLLECTION_NAME]
+
+# Utility functions
+def find_category(guild, category_name):
+    return discord.utils.find(lambda c: c.name == category_name, guild.categories)
+
+def get_next_ticket_number(guild):
+    max_number = 0
+    for channel in guild.channels:
+        if channel.name.startswith("ticket-"):
+            try:
+                number = int(channel.name.split("-")[1])
+                max_number = max(max_number, number)
+            except ValueError:
+                continue
+    return max_number + 1
+
+# UI Components
 class OpenTicket(discord.ui.View):
-    
     def __init__(self):
         super().__init__(timeout=None)
     
-    @discord.ui.button(label="Open Ticket", style=discord.ButtonStyle.green, custom_id="OpenTicket")
+    @discord.ui.button(label="Open Ticket", style=discord.ButtonStyle.green, emoji="🎫", custom_id="OpenTicket")
     async def button_callback(self, button, interaction):
         guild = interaction.guild
         user = interaction.user
-        category = discord.utils.find(lambda c: c.name == "tickets", guild.categories)
-        member_overwrites = {
-                user: discord.PermissionOverwrite(view_channel=True),
-                guild.default_role: discord.PermissionOverwrite(view_channel=False)
-                }
-        overwrites = {guild.default_role: discord.PermissionOverwrite(view_channel=False)}
-        global ticket_id
-        client = MongoClient("mongodb://localhost:27017/")
-        ticketdb = client["DiscordBotDB"]
-        collection = ticketdb["TicketCollection"]
+        collection = get_db_collection()
         
         if collection.find_one({"user_id": user.id}):
-            await interaction.response.send_message("You already have a open Ticket", ephemeral=True)
-            
-        else:
-            if category:
-                max_number = 0
-                for channel in guild.channels:
-                    if channel.name.startswith("ticket-"):
-                        try:
-                            number = int(channel.name.split("-")[1])
-                            if number > max_number:
-                                max_number = number
-                        except ValueError:
-                            continue
-                        
-                new_ticket = f"ticket-{max_number + 1}"
-                collection.insert_one({"user_id": user.id, "user_name": user.name, "ticket_name": f"{new_ticket}"})
-                await guild.create_text_channel(new_ticket, category=category, overwrites=member_overwrites)
-                await interaction.response.send_message(f"✅ Created your ticket! Channel: {new_ticket}", ephemeral=True)
-            else:
-                await guild.create_category(name="tickets", overwrites=overwrites)
-                max_number = 0
-                for channel in guild.channels:
-                    if channel.name.startswith("ticket-"):
-                        try:
-                            number = int(channel.name.split("-")[1])
-                            if number > max_number:
-                                max_number = number
-                        except ValueError:
-                            continue
-                        
-                new_ticket = f"ticket-{max_number + 1}"
-                collection.insert_one({"user_id": user.id, "user_name": user.name, "ticket_name": f"{new_ticket}"})
-                await guild.create_text_channel(new_ticket, category=category, overwrites=member_overwrites)
-                await interaction.response.send_message(f"✅ Created your ticket! Channel: {new_ticket}", ephemeral=True)
-            
+            await interaction.response.send_message("You already have an open ticket", ephemeral=True)
+            return
+
+        category = find_category(guild, "tickets")
+        if not category:
+            category = await guild.create_category(name="tickets")
+
+        ticket_number = get_next_ticket_number(guild)
+        new_ticket = f"ticket-{ticket_number}"
+        
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            user: discord.PermissionOverwrite(view_channel=True)
+        }
+        
+        await guild.create_text_channel(new_ticket, category=category, overwrites=overwrites)
+        collection.insert_one({"user_id": user.id, "user_name": user.name, "ticket_name": new_ticket})
+        await interaction.response.send_message(f"✅ Created your ticket! Channel: {new_ticket}", ephemeral=True)
+
 class CloseTicket(discord.ui.View):
-    @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.red, emoji="🔒")
     async def button_callback(self, button, interaction: discord.Interaction):
         guild = interaction.guild
         channel = interaction.channel
-        category = discord.utils.find(lambda c: c.name == "archived-tickets", guild.categories)
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False)
-        }
-        
-        client = MongoClient("mongodb://localhost:27017/")
-        ticketdb = client["DiscordBotDB"]
-        collection = ticketdb["TicketCollection"]
-        
+        collection = get_db_collection()
 
-        if category:
-            collection.delete_one({"ticket_name": f"{channel.name}"})
-            await channel.edit(category=category, overwrites=overwrites)
-            await interaction.response.send_message("🔒 The ticket was successfully closed!", ephemeral=True)
-        else:
-            collection.delete_one({"ticket_name": f"{channel.name}"})
-            await guild.create_category(name="archived-tickets", overwrites=overwrites)
-            await channel.edit(category=category, overwrites=overwrites)
-            await interaction.response.send_message("🔒 The ticket was successfully closed!", ephemeral=True)
+        category = find_category(guild, "archived-tickets")
+        if not category:
+            category = await guild.create_category(name="archived-tickets")
+
+        overwrites = {guild.default_role: discord.PermissionOverwrite(view_channel=False)}
         
+        collection.delete_one({"ticket_name": channel.name})
+        await channel.edit(category=category, overwrites=overwrites)
+        await interaction.response.send_message("🔒 The ticket was successfully closed!", ephemeral=True)
+
+# Cog
 class Ticket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -99,18 +92,16 @@ class Ticket(commands.Cog):
         )
         guild_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
         embed.set_footer(text="VertrauensGamer", icon_url=guild_icon_url)
-        embed.set_author(name=f"Ticket System", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+        embed.set_author(name="Ticket System", icon_url=guild_icon_url)
         
         await ctx.respond(embed=embed, view=OpenTicket())
         
     @discord.slash_command()
     @commands.has_permissions(administrator=True)
     async def close_ticket(self, ctx: discord.ApplicationContext):
-        client = MongoClient("mongodb://localhost:27017/")
-        ticketdb = client["DiscordBotDB"]
-        collection = ticketdb["TicketCollection"]
+        collection = get_db_collection()
         
-        if collection.find_one({"ticket_name": f"{ctx.channel}"}):
+        if collection.find_one({"ticket_name": ctx.channel.name}):
             embed = discord.Embed(
                 title="🔒 Close Ticket",
                 description="Are you sure you want to close this ticket?",
