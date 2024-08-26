@@ -100,7 +100,7 @@ class Giveaway(commands.Cog):
         if self.active_giveaways.get(giveaway_id):
             await self.end_giveaway(ctx, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed)
 
-    async def end_giveaway(self, ctx, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed):
+    async def end_giveaway(self, ctx: discord.ApplicationContext, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed):
         winner = await self.select_winner(ctx, entrycol, giveaway_id)
 
         embed = self.create_end_giveaway_embed(giveaway_item, winner)
@@ -108,11 +108,11 @@ class Giveaway(commands.Cog):
         if message:
             await message.edit(embed=embed, view=None)
 
-        await ctx.send(f"🎊 Congratulations! {winner} has won the Giveaway for **{giveaway_item}**!")
+        await ctx.respond(f"🎊 Congratulations! {winner} has won the Giveaway for **{giveaway_item}**!")
 
         self.cleanup_giveaway(entrycol, giveawaycol, giveaway_id)
 
-    def create_giveaway_embed(self, ctx, giveaway_item, time_in_mins, end_time):
+    def create_giveaway_embed(self, ctx: discord.ApplicationContext, giveaway_item, time_in_mins, end_time):
         embed = discord.Embed(
             title=f"🎉 Giveaway: **{giveaway_item}**",
             color=discord.Color.dark_purple()
@@ -134,7 +134,7 @@ class Giveaway(commands.Cog):
         embed.set_footer(text="VertrauensGamer • Giveaway Ended", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
         return embed
 
-    async def select_winner(self, ctx, entrycol, giveaway_id):
+    async def select_winner(self, ctx: discord.ApplicationContext, entrycol, giveaway_id):
         winner_data = entrycol.aggregate([
             {'$match': {'giveaway_id': giveaway_id}},
             {'$sample': {'size': 1}}
