@@ -21,6 +21,7 @@ COGS_LIST = [
     'announcement',
     'oil',
     'moderation',
+    'server_stats'
 ]
 
 # Set up logging
