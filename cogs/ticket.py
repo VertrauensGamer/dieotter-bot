@@ -2,16 +2,7 @@ import discord
 from discord.ext import commands
 from pymongo import MongoClient
 import datetime
-
-# Database setup
-MONGO_URI = "mongodb://localhost:27017/"
-DB_NAME = "DiscordBotDB"
-COLLECTION_NAME = "TicketCollection"
-
-def get_db_collection():
-    client = MongoClient(MONGO_URI)
-    db = client[DB_NAME]
-    return db[COLLECTION_NAME]
+from main import get_ticket_collection
 
 # Utility functions
 def find_category(guild, category_name):
@@ -37,7 +28,7 @@ class OpenTicket(discord.ui.View):
     async def button_callback(self, button, interaction):
         guild = interaction.guild
         user = interaction.user
-        collection = get_db_collection()
+        collection = get_ticket_collection()
         
         if collection.find_one({"user_id": user.id}):
             await interaction.response.send_message("You already have an open ticket", ephemeral=True)
@@ -64,7 +55,7 @@ class CloseTicket(discord.ui.View):
     async def button_callback(self, button, interaction: discord.Interaction):
         guild = interaction.guild
         channel = interaction.channel
-        collection = get_db_collection()
+        collection = get_ticket_collection()
 
         category = find_category(guild, "archived-tickets")
         if not category:
@@ -99,7 +90,7 @@ class Ticket(commands.Cog):
     @discord.slash_command()
     @commands.has_permissions(administrator=True)
     async def close_ticket(self, ctx: discord.ApplicationContext):
-        collection = get_db_collection()
+        collection = get_ticket_collection()
         
         if collection.find_one({"ticket_name": ctx.channel.name}):
             embed = discord.Embed(

@@ -4,17 +4,7 @@ import asyncio
 from pymongo import MongoClient
 import uuid
 import datetime
-
-# Database setup
-MONGO_URI = "mongodb://localhost:27017/"
-DB_NAME = "DiscordBotDB"
-GIVEAWAY_COLLECTION = "GiveawayCollection"
-ENTRY_COLLECTION = "GiveawayEntry"
-
-def get_db_collections():
-    client = MongoClient(MONGO_URI)
-    db = client[DB_NAME]
-    return db[GIVEAWAY_COLLECTION], db[ENTRY_COLLECTION]
+from main import get_db_collections
 
 # UI Components
 class GiveawayButton(discord.ui.View):
