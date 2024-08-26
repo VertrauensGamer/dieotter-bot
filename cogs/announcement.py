@@ -10,8 +10,8 @@ class announcement(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def announcement(self,
                            ctx: discord.ApplicationContext,
-                           title: discord.Option(str, "Title of the announcement"),
-                           message: discord.Option(str, "Content of the announcement"),
+                           title: discord.Option(str, "Title of the announcement"), # type: ignore
+                           message: discord.Option(str, "Content of the announcement"), # type: ignore
                            ):
         embed = discord.Embed(
             title=f"{title}",

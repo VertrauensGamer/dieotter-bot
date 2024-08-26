@@ -3,6 +3,7 @@ from discord.ext import commands
 import asyncio
 from pymongo import MongoClient
 import uuid
+import datetime
 
 class GiveawayButton(discord.ui.View):
 
@@ -10,7 +11,7 @@ class GiveawayButton(discord.ui.View):
         super().__init__()
         self.giveaway_id = giveaway_id
 
-    @discord.ui.button(label="Enter Giveaway", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="Enter Giveaway🎉", style=discord.ButtonStyle.green)
     async def button_callback(self, button, interaction):
         client = MongoClient("mongodb://localhost:27017/")
         giveawaydb = client["DiscordBotDB"]
@@ -36,8 +37,8 @@ class Giveaway(commands.Cog):
     async def giveaway_create(
         self,
         ctx: discord.ApplicationContext,
-        giveaway_item: discord.Option(str, "The Giveaway Item"),
-        time_in_mins: discord.Option(int, "How long in mins")
+        giveaway_item: discord.Option(str, "The Giveaway Item"), # type: ignore
+        time_in_mins: discord.Option(int, "How long in mins") # type: ignore
     ):
         client = MongoClient("mongodb://localhost:27017/")
         giveawaydb = client["DiscordBotDB"]
@@ -48,21 +49,26 @@ class Giveaway(commands.Cog):
         giveawaycol.insert_one({"giveaway_id": giveaway_id, "item": giveaway_item})
         self.active_giveaways[giveaway_id] = True
 
+        end_time = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=int(time_in_mins))
+
         embed = discord.Embed(
-            title=f"Entry to win: **{giveaway_item}**",
-            description=f"{time_in_mins} minutes remaining",
+            title=f"🎉 Giveaway: **{giveaway_item}**",
             color=discord.Color.dark_purple()
         )
+        embed.add_field(name="⏳ Duration", value=f"{time_in_mins} minutes", inline=False)
+        embed.add_field(name="🏆 Prize", value=giveaway_item, inline=False)
+        embed.add_field(name="👥 Hosted by", value=ctx.author.mention, inline=False)
         embed.set_author(name=f"{ctx.author.display_name}", icon_url=f"{ctx.author.display_avatar.url}")
-        embed.set_footer(text="VertrauensGamer", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
+        embed.set_footer(text="VertrauensGamer • 🎉Click the Button to Entry!", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
+        embed.timestamp = end_time
 
         interaction = await ctx.respond(embed=embed, view=GiveawayButton(giveaway_id))
         message = await interaction.original_response()
-        self.giveaway_messages[giveaway_id] = message  # Store the message reference
+        self.giveaway_messages[giveaway_id] = message
 
         while time_in_mins > 0 and self.active_giveaways.get(giveaway_id):
             time_in_mins -= 1
-            embed.description = f"{time_in_mins} minutes remaining"
+            embed.set_field_at(0, name="⏳ Time Remaining", value=f"{time_in_mins} minutes", inline=False)
             await message.edit(embed=embed)
             await asyncio.sleep(60)
 
@@ -74,7 +80,7 @@ class Giveaway(commands.Cog):
     async def endgiveaway(
         self,
         ctx: discord.ApplicationContext,
-        giveaway_item: discord.Option(str, "Input the giveaway Item of the giveaway you want to end")
+        giveaway_item: discord.Option(str, "Input the giveaway Item of the giveaway you want to end") # type: ignore
     ):
         client = MongoClient("mongodb://localhost:27017/")
         giveawaydb = client["DiscordBotDB"]
@@ -87,9 +93,9 @@ class Giveaway(commands.Cog):
             self.active_giveaways[giveaway_id] = False
             message = self.giveaway_messages.get(giveaway_id)  # Retrieve the stored message
             embed = discord.Embed(
-                title=f"Entry to win: **{giveaway_item}**",
+                title=f"🎉 Giveaway: **{giveaway_item}**",
                 description="**GIVEAWAY ENDED**",
-                color=discord.Color.red()
+                color=discord.Color.gold()
             )
             if message:
                 await message.edit(embed=embed)
@@ -109,9 +115,18 @@ class Giveaway(commands.Cog):
             winner_user = await ctx.guild.fetch_member(winner_id)
             winner = winner_user.mention
         else:
-            winner = "No Entry"
+            winner = "Nobody"
 
-        await ctx.send(f"{winner} has won the Giveaway for {giveaway_item}!")
+        embed.title = f"🎉 Giveaway Ended: **{giveaway_item}**"
+        embed.clear_fields()
+        embed.add_field(name="🏆 Winner", value=winner, inline=False)
+        embed.color = discord.Color.gold()
+        embed.set_footer(text="VertrauensGamer • Giveaway Ended", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
+
+        if message:
+            await message.edit(embed=embed, view=None)
+
+        await ctx.send(f"🎊 Congratulations! {winner} has won the Giveaway for **{giveaway_item}**!")
 
         entrycol.delete_many({"giveaway_id": giveaway_id})
         giveawaycol.delete_one({"giveaway_id": giveaway_id})
