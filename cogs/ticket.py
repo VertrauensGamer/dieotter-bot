@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from pymongo import MongoClient
+import datetime
 
 class OpenTicket(discord.ui.View):
     
@@ -40,7 +41,7 @@ class OpenTicket(discord.ui.View):
                 new_ticket = f"ticket-{max_number + 1}"
                 collection.insert_one({"user_id": user.id, "user_name": user.name, "ticket_name": f"{new_ticket}"})
                 await guild.create_text_channel(new_ticket, category=category, overwrites=member_overwrites)
-                await interaction.response.send_message(f"Created your Ticket! Ticketname: {new_ticket}", ephemeral=True)
+                await interaction.response.send_message(f"✅ Created your ticket! Channel: {new_ticket}", ephemeral=True)
             else:
                 await guild.create_category(name="tickets", overwrites=overwrites)
                 max_number = 0
@@ -56,7 +57,7 @@ class OpenTicket(discord.ui.View):
                 new_ticket = f"ticket-{max_number + 1}"
                 collection.insert_one({"user_id": user.id, "user_name": user.name, "ticket_name": f"{new_ticket}"})
                 await guild.create_text_channel(new_ticket, category=category, overwrites=member_overwrites)
-                await interaction.response.send_message(f"Created your Ticket! Ticketname: {new_ticket}", ephemeral=True)
+                await interaction.response.send_message(f"✅ Created your ticket! Channel: {new_ticket}", ephemeral=True)
             
 class CloseTicket(discord.ui.View):
     @discord.ui.button(label="Close Ticket", style=discord.ButtonStyle.red)
@@ -76,52 +77,53 @@ class CloseTicket(discord.ui.View):
         if category:
             collection.delete_one({"ticket_name": f"{channel.name}"})
             await channel.edit(category=category, overwrites=overwrites)
-            await interaction.response.send_message("The Ticket was successfully closed!", ephemeral=True)
+            await interaction.response.send_message("🔒 The ticket was successfully closed!", ephemeral=True)
         else:
             collection.delete_one({"ticket_name": f"{channel.name}"})
             await guild.create_category(name="archived-tickets", overwrites=overwrites)
             await channel.edit(category=category, overwrites=overwrites)
-            await interaction.response.send_message("The Ticket was successfully closed!", ephemeral=True)
+            await interaction.response.send_message("🔒 The ticket was successfully closed!", ephemeral=True)
         
-class ticket(commands.Cog):
+class Ticket(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
     @discord.slash_command()
     @commands.has_permissions(administrator=True)
     async def ticket_message(self, ctx):
-        
         embed = discord.Embed(
-            title="Create a Ticket!",
-            description="To create a ticket press the button below!",
+            title="🎫 Create a Ticket",
+            description="Need assistance? Click the button below to open a new ticket!",
             color=discord.Colour.dark_purple(),
+            timestamp=datetime.datetime.now(datetime.UTC)
         )
-        embed.set_footer(text="VertrauensGamer", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
+        guild_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
+        embed.set_footer(text="VertrauensGamer", icon_url=guild_icon_url)
+        embed.set_author(name=f"Ticket System", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
         
-        
-        await ctx.send(embed=embed, view=OpenTicket())
+        await ctx.respond(embed=embed, view=OpenTicket())
         
     @discord.slash_command()
     @commands.has_permissions(administrator=True)
     async def close_ticket(self, ctx: discord.ApplicationContext):
-        
         client = MongoClient("mongodb://localhost:27017/")
         ticketdb = client["DiscordBotDB"]
         collection = ticketdb["TicketCollection"]
         
         if collection.find_one({"ticket_name": f"{ctx.channel}"}):
             embed = discord.Embed(
-                    title="Close Ticket",
-                    description="Are you really sure u want to close the ticket?",
-                    color=discord.Colour.dark_purple(),
-                )
-            embed.set_footer(text="VertrauensGamer", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
-            embed.set_author(name=f"{ctx.author.display_name}", icon_url=f"{ctx.author.display_avatar.url}")
+                title="🔒 Close Ticket",
+                description="Are you sure you want to close this ticket?",
+                color=discord.Colour.dark_purple(),
+                timestamp=datetime.datetime.now(datetime.UTC)
+            )
+            guild_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
+            embed.set_footer(text="VertrauensGamer", icon_url=guild_icon_url)
+            embed.set_author(name=f"Requested by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
         
-            
             await ctx.respond(embed=embed, view=CloseTicket())
         else:
-            await ctx.respond("This is not a ticket", ephemeral=True)
+            await ctx.respond("❌ This is not a ticket channel.", ephemeral=True)
 
 def setup(bot):
-    bot.add_cog(ticket(bot))
+    bot.add_cog(Ticket(bot))

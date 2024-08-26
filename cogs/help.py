@@ -1,36 +1,54 @@
 import discord
 from discord.ext import commands
+import datetime
 
-class help(commands.Cog):
+class Help(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
         
     @discord.slash_command()
     async def help(self, ctx):
-    
-    
         embed = discord.Embed(
-            title="Help 1(Currently only Page)",
-            description="This Embed gives u information about all the commands of the bot!",
+            title="📚 Bot Commands Guide",
+            description="Welcome to the help section! Here's a comprehensive list of all available commands.",
             color=discord.Colour.dark_purple(),
+            timestamp=datetime.datetime.now(datetime.UTC)
         )
-        embed.add_field(name="/hallo", value="> /hallo is a test command! Feel free to use it(It just gives u the respond hallo!)")
-        embed.add_field(name="/help", value="> /help is this command you are looking at right now! It gives you information about all commands of this bot!")
-        embed.add_field(name="/ticket_message [Administrative]", value="> /ticket_message creates a Ticket create message")
-        embed.add_field(name="/close_ticket [Administrative]", value="> Closes and automatically archives a ticket into a new category")
-        embed.add_field(name="/giveaway [Options: giveaway_item, time_in_mins] [Administrative]", value="> Makes a giveaway and randomly selects a winner")
-        embed.add_field(name="/announcement [Administrative]", value="> Makes an embed to announce smth")
-        embed.add_field(name="/play [url]", value="> Music Player currently WIP(currently disabled)")
-        embed.add_field(name="/stop", value="> Makes the bot stop playing music and leaving the channel(currently disabled)")
-        embed.add_field(name="/kick", value="> Kicks a member [administrative]")
-        embed.add_field(name="/ban", value="> Bans a member [administrative]")
-        embed.add_field(name="/mute", value="> mutes a member [administrative]")
-        embed.add_field(name="/unmute", value="> unmutes a member [administrative]")
-        embed.set_footer(text="VertrauensGamer", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
-        embed.set_author(name=f"{ctx.author.display_name}", icon_url=f"{ctx.author.display_avatar.url}")
+
+        # General Commands
+        embed.add_field(name="🔹 General Commands", value="Commands available to all users", inline=False)
+        embed.add_field(name="/hallo", value="A test command that responds with 'hallo!'", inline=True)
+        embed.add_field(name="/help", value="Displays this help message", inline=True)
+        embed.add_field(name="\u200b", value="\u200b", inline=True)  # Empty field for alignment
+
+        # Administrative Commands
+        embed.add_field(name="🔸 Administrative Commands", value="Commands for server administrators", inline=False)
+        embed.add_field(name="/ticket_message", value="Creates a ticket creation message", inline=True)
+        embed.add_field(name="/close_ticket", value="Closes and archives a ticket", inline=True)
+        embed.add_field(name="/giveaway", value="Starts a giveaway (Options: item, duration)", inline=True)
+        embed.add_field(name="/announcement", value="Creates an announcement embed", inline=True)
+        embed.add_field(name="/kick", value="Kicks a member from the server", inline=True)
+        embed.add_field(name="/ban", value="Bans a member from the server", inline=True)
+        embed.add_field(name="/mute", value="Mutes a member", inline=True)
+        embed.add_field(name="/unmute", value="Unmutes a member", inline=True)
+
+        # Music Commands (Currently Disabled)
+        embed.add_field(name="🎵 Music Commands (Currently Disabled)", value="Commands for playing music", inline=False)
+        embed.add_field(name="/play [url]", value="Plays music from the given URL", inline=True)
+        embed.add_field(name="/stop", value="Stops playing music and leaves the channel", inline=True)
+
+        # Footer and Author
+        guild_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
+        embed.set_footer(text="VertrauensGamer", icon_url=guild_icon_url)
+        embed.set_author(name=f"Requested by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
         
-        await ctx.respond(embed=embed, view = discord.ui.View(discord.ui.Button(label="Github", style=discord.ButtonStyle.url, url="https://github.com/VertrauensGamer")))
+        # GitHub Button
+        github_button = discord.ui.Button(label="GitHub", style=discord.ButtonStyle.url, url="https://github.com/VertrauensGamer")
+        view = discord.ui.View()
+        view.add_item(github_button)
+
+        await ctx.respond(embed=embed, view=view)
         
 def setup(bot):
-    bot.add_cog(help(bot))
+    bot.add_cog(Help(bot))
