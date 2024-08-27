@@ -21,6 +21,7 @@ class Help(commands.Cog):
         embed.add_field(name="/hallo", value="A test command that responds with 'hallo!'", inline=True)
         embed.add_field(name="/help", value="Displays this help message", inline=True)
         embed.add_field(name="\u200b", value="\u200b", inline=True)  # Empty field for alignment
+        embed.add_field(name="Feedback", value="Submits feedback to the server admins", inline=True)
 
         # Administrative Commands
         embed.add_field(name="🔸 Administrative Commands", value="Commands for server administrators", inline=False)
