@@ -22,7 +22,8 @@ COGS_LIST = [
     'oil',
     'moderation',
     'server_stats',
-    'music'
+    'music',
+    'feedback',
 ]
 
 # Set up logging
@@ -43,6 +44,11 @@ def get_ticket_collection():
     client = MongoClient(MONGO_URI)
     db = client[DB_NAME]
     return db[TICKET_COLLECTION]
+
+def get_feedback_collection():
+    client = MongoClient(MONGO_URI)
+    db = client[DB_NAME]
+    return db["FeedbackCollection"]
 
 def clear_giveaway_data():
     giveawaycol, entrycol = get_db_collections()
