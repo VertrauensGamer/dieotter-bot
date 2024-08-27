@@ -36,7 +36,10 @@ class Help(commands.Cog):
         # Music Commands (Currently Disabled)
         embed.add_field(name="🎵 Music Commands (Currently Disabled)", value="Commands for playing music", inline=False)
         embed.add_field(name="/play [url]", value="Plays music from the given URL", inline=True)
-        embed.add_field(name="/stop", value="Stops playing music and leaves the channel", inline=True)
+        embed.add_field(name="/stop", value="Stops playing music", inline=True)
+        embed.add_field(name="/disconnect", value="disconnects the bot from the channel", inline=True)
+        embed.add_field(name="/pause", value="Pauses the Music", inline=True)
+        embed.add_field(name="/resume", value="Resumes the music", inline=True)
 
         # Footer and Author
         guild_icon_url = ctx.guild.icon.url if ctx.guild.icon else None
