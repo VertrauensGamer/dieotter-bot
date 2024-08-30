@@ -15,7 +15,7 @@ class Feedback(commands.Cog):
     async def submit_feedback(
         self, 
         ctx, 
-        message: Option(str, "Dein Feedback-Nachricht", required=True)
+        message: Option(str, "Deine Feedback-Nachricht", required=True)
     ):
         await ctx.defer(ephemeral=True)
         
