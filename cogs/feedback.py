@@ -2,6 +2,7 @@ import discord
 from discord import Option
 from discord.ext import commands
 from main import get_feedback_collection
+import uuid
 
 class Feedback(commands.Cog):
     def __init__(self, bot):
@@ -24,8 +25,8 @@ class Feedback(commands.Cog):
         new_feedback = {
             "user_id": ctx.author.id,
             "user_name": ctx.author.name,
-            "user_avatar": str(ctx.author.avatar.url) if ctx.author.avatar else None,
-            "message": message
+            "message": message,
+            "feedbackId": str(uuid.uuid4())
         }
         
         result = feedback_collection.insert_one(new_feedback)
