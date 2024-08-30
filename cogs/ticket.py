@@ -37,11 +37,8 @@ class OpenTicket(discord.ui.View):
             await interaction.response.send_message("You already have an open ticket", ephemeral=True)
             return
 
-        category = find_category(guild, "tickets")
+        category = find_category(guild, "tickets") or await guild.create_category(name="tickets")
         role = find_role(guild, "Admin")
-        if not category:
-            category = await guild.create_category(name="tickets")
-
         ticket_number = get_next_ticket_number(guild)
         new_ticket = f"ticket-{ticket_number}"
         
@@ -50,9 +47,9 @@ class OpenTicket(discord.ui.View):
             user: discord.PermissionOverwrite(view_channel=True)
         }
         
-        await guild.create_text_channel(new_ticket, category=category, overwrites=overwrites)
+        channel = await guild.create_text_channel(new_ticket, category=category, overwrites=overwrites)
         collection.insert_one({"user_id": user.id, "user_name": user.name, "ticket_name": new_ticket})
-        await interaction.guild.get_channel(discord.utils.get(guild.channels, name=new_ticket).id).send(f"{user.mention} bitte beschreibe dein Problem und ein {role.mention} wird es bearbeiten.")
+        await channel.send(f"{user.mention} bitte beschreibe dein Problem und ein {role.mention} wird es bearbeiten.")
         await interaction.response.send_message(f"✅ Created your ticket! Channel: {new_ticket}", ephemeral=True)
 
 class CloseTicket(discord.ui.View):
@@ -62,10 +59,7 @@ class CloseTicket(discord.ui.View):
         channel = interaction.channel
         collection = get_ticket_collection()
 
-        category_new = find_category(guild, "archived-tickets")
-        if not category_new:
-            category_new = await guild.create_category(name="archived-tickets")
-
+        category_new = find_category(guild, "archived-tickets") or await guild.create_category(name="archived-tickets")
         overwrites = {guild.default_role: discord.PermissionOverwrite(view_channel=False)}
         
         collection.delete_one({"ticket_name": channel.name})

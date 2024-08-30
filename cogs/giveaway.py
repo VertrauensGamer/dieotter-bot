@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 import asyncio
-from pymongo import MongoClient
 import uuid
 import datetime
 from main import get_db_collections
@@ -29,79 +28,56 @@ class Giveaway(commands.Cog):
         self.bot = bot
         self.active_giveaways = {}
         self.giveaway_messages = {}
-        super().__init__()
 
-@discord.slash_command()
-@commands.has_permissions(administrator=True)
-async def giveaway_create(
-    self,
-    ctx: discord.ApplicationContext,
-    giveaway_item: discord.Option(str, "The Giveaway Item"),  # type: ignore
-    time_in_mins: discord.Option(int, "How long in mins"),  # type: ignore
-    num_winners: discord.Option(int, "Number of winners", default=1, min_value=1)  # type: ignore
-):
-    """
-    Creates a new giveaway and starts the timer.
+    @discord.slash_command()
+    @commands.has_permissions(administrator=True)
+    async def giveaway_create(
+        self,
+        ctx: discord.ApplicationContext,
+        giveaway_item: discord.Option(str, "The Giveaway Item"),
+        time_in_mins: discord.Option(int, "How long in mins"),
+        num_winners: discord.Option(int, "Number of winners", default=1, min_value=1)
+    ):
+        giveawaycol, entrycol = get_db_collections()
 
-    Parameters:
-    ctx (discord.ApplicationContext): The context of the command invocation.
-    giveaway_item (str): The item of the giveaway.
-    time_in_mins (int): The duration of the giveaway in minutes.
-    num_winners (int): The number of winners for the giveaway. Default is 1.
+        giveaway_id = str(uuid.uuid4())
+        giveawaycol.insert_one({"giveaway_id": giveaway_id, "item": giveaway_item, "num_winners": num_winners})
+        self.active_giveaways[giveaway_id] = True
 
-    Returns:
-    None
-    """
-    giveawaycol, entrycol = get_db_collections()
+        end_time = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=int(time_in_mins))
 
-    giveaway_id = str(uuid.uuid4())
-    giveawaycol.insert_one({"giveaway_id": giveaway_id, "item": giveaway_item, "num_winners": num_winners})
-    self.active_giveaways[giveaway_id] = True
+        embed = self.create_giveaway_embed(ctx, giveaway_item, time_in_mins, end_time, num_winners)
 
-    end_time = datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=int(time_in_mins))
+        interaction = await ctx.respond(embed=embed, view=GiveawayButton(giveaway_id))
+        message = await interaction.original_response()
+        self.giveaway_messages[giveaway_id] = message
 
-    embed = self.create_giveaway_embed(ctx, giveaway_item, time_in_mins, end_time, num_winners)
+        await self.giveaway_timer(ctx, giveawaycol, entrycol, giveaway_id, giveaway_item, time_in_mins, message, embed)
 
-    interaction = await ctx.respond(embed=embed, view=GiveawayButton(giveaway_id))
-    message = await interaction.original_response()
-    self.giveaway_messages[giveaway_id] = message
+    @discord.slash_command()
+    @commands.has_permissions(administrator=True)
+    async def endgiveaway(
+        self,
+        ctx: discord.ApplicationContext,
+        giveaway_item: discord.Option(str, "Input the giveaway Item of the giveaway you want to end")
+    ):
+        giveawaycol, entrycol = get_db_collections()
 
-    await self.giveaway_timer(ctx, giveawaycol, entrycol, giveaway_id, giveaway_item, time_in_mins, message, embed)
-
-@discord.slash_command()
-@commands.has_permissions(administrator=True)
-async def endgiveaway(
-    self,
-    ctx: discord.ApplicationContext,
-    giveaway_item: discord.Option(str, "Input the giveaway Item of the giveaway you want to end") # type: ignore
-):
-    """
-    Ends a giveaway by updating the status in the database and sending a message to the channel.
-
-    Parameters:
-    ctx (discord.ApplicationContext): The context of the command invocation.
-    giveaway_item (str): The item of the giveaway to end.
-
-    Returns:
-    None
-    """
-    giveawaycol, entrycol = get_db_collections()
-
-    giveaway = giveawaycol.find_one({"item": giveaway_item})
-    if giveaway:
-        giveaway_id = giveaway["giveaway_id"]
-        self.active_giveaways[giveaway_id] = False
-        message = self.giveaway_messages.get(giveaway_id)
-        embed = discord.Embed(
-            title=f"🎉 Giveaway: **{giveaway_item}**",
-            description="**GIVEAWAY ENDED**",
-            color=discord.Color.gold()
-        )
-        if message:
-            await message.edit(embed=embed)
-        await self.end_giveaway(ctx, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed)
-    else:
-        await ctx.send("No active giveaway found for the specified item.")
+        giveaway = giveawaycol.find_one({"item": giveaway_item})
+        if giveaway:
+            giveaway_id = giveaway["giveaway_id"]
+            self.active_giveaways[giveaway_id] = False
+            message = self.giveaway_messages.get(giveaway_id)
+            embed = discord.Embed(
+                title=f"🎉 Giveaway: **{giveaway_item}**",
+                description="**GIVEAWAY ENDED**",
+                color=discord.Color.gold()
+            )
+            if message:
+                await message.edit(embed=embed)
+            await self.end_giveaway(ctx, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed)
+        else:
+            await ctx.send("No active giveaway found for the specified item.")
 
     async def giveaway_timer(self, ctx, giveawaycol, entrycol, giveaway_id, giveaway_item, time_in_mins, message, embed):
         giveaway = giveawaycol.find_one({"giveaway_id": giveaway_id})
@@ -116,11 +92,10 @@ async def endgiveaway(
         if self.active_giveaways.get(giveaway_id):
             await self.end_giveaway(ctx, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed)
 
-    async def end_giveaway(self, ctx: discord.ApplicationContext, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed):
+    async def end_giveaway(self, ctx, entrycol, giveawaycol, giveaway_id, giveaway_item, message, embed):
         giveaway = giveawaycol.find_one({"giveaway_id": giveaway_id})
         num_winners = giveaway.get("num_winners", 1)
         winners = await self.select_winner(ctx, entrycol, giveaway_id, num_winners)
-        
 
         embed = self.create_end_giveaway_embed(giveaway_item, winners)
 
@@ -128,11 +103,11 @@ async def endgiveaway(
             await message.edit(embed=embed, view=None)
 
         winners_mention = ", ".join(winners)
-        await ctx.respond(f"🎊 Congratulations! {winners_mention} {'has' if len(winners) == 1 else 'have'} has won the Giveaway for **{giveaway_item}**!")
+        await ctx.respond(f"🎊 Congratulations! {winners_mention} {'has' if len(winners) == 1 else 'have'} won the Giveaway for **{giveaway_item}**!")
 
         self.cleanup_giveaway(entrycol, giveawaycol, giveaway_id)
 
-    def create_giveaway_embed(self, ctx: discord.ApplicationContext, giveaway_item, time_in_mins, end_time, num_winners):
+    def create_giveaway_embed(self, ctx, giveaway_item, time_in_mins, end_time, num_winners):
         embed = discord.Embed(
             title=f"🎉 Giveaway: **{giveaway_item}**",
             color=discord.Color.dark_purple()
@@ -146,18 +121,7 @@ async def endgiveaway(
         embed.timestamp = end_time
         return embed
 
-    def create_end_giveaway_embed(self, giveaway_item,  winners):
-        """
-        Creates an embed message for the end of a giveaway.
-
-        Parameters:
-        self (Giveaway): The instance of the Giveaway class.
-        giveaway_item (str): The item of the giveaway.
-        winners (list or str): The winner(s) of the giveaway. If multiple winners, this should be a list of their mentions.
-
-        Returns:
-        discord.Embed: An embed message with the details of the ended giveaway.
-        """
+    def create_end_giveaway_embed(self, giveaway_item, winners):
         embed = discord.Embed(
             title=f"🎉 Giveaway Ended: **{giveaway_item}**",
             color=discord.Color.gold()
@@ -167,7 +131,7 @@ async def endgiveaway(
         embed.set_footer(text="VertrauensGamer • Giveaway Ended", icon_url="https://cdn.discordapp.com/avatars/466537555798654987/3d3a360eb92b3fccd9e4e7ddea831703.webp?size=80")
         return embed
 
-    async def select_winner(self, ctx: discord.ApplicationContext, entrycol, giveaway_id, num_winners):
+    async def select_winner(self, ctx, entrycol, giveaway_id, num_winners):
         winner_data = entrycol.aggregate([
             {'$match': {'giveaway_id': giveaway_id}},
             {'$sample': {'size': num_winners}}
